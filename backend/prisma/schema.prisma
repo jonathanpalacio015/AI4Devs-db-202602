@@ -1,8 +1,8 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// =============================================================
+// schema.prisma - LTI Talent Tracking System (ATS)
+// Expandido con ATS completo | Normalizado hasta 3NF
+// Para aplicar: npx prisma migrate dev --name ats_complete
+// =============================================================
 
 generator client {
   provider      = "prisma-client-js"
@@ -14,28 +14,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ----------------------------------------------------------
+// MODELOS EXISTENTES (compatibles con código actual)
+// ----------------------------------------------------------
+
+/// Candidato que aplica a posiciones publicadas en el ATS.
 model Candidate {
-  id                Int               @id @default(autoincrement())
-  firstName         String            @db.VarChar(100)
-  lastName          String            @db.VarChar(100)
-  email             String            @unique @db.VarChar(255)
-  phone             String?           @db.VarChar(15)
-  address           String?           @db.VarChar(100)
-  educations        Education[]
-  workExperiences   WorkExperience[]
-  resumes           Resume[]
+  id              Int              @id @default(autoincrement())
+  firstName       String           @db.VarChar(100)
+  lastName        String           @db.VarChar(100)
+  email           String           @unique @db.VarChar(255)
+  phone           String?          @db.VarChar(15)
+  address         String?          @db.VarChar(100)
+  // Campos extendidos (nuevos — no rompen código existente)
+  linkedinUrl     String?          @db.VarChar(255)
+  desiredSalary   Float?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  // Relaciones existentes
+  educations      Education[]
+  workExperiences WorkExperience[]
+  resumes         Resume[]
+  // Nueva relación con aplicaciones
+  applications    Application[]
 }
 
+/// Historial académico del candidato.
 model Education {
-  id            Int       @id @default(autoincrement())
-  institution   String    @db.VarChar(100)
-  title         String    @db.VarChar(250)
-  startDate     DateTime
-  endDate       DateTime?
-  candidateId   Int
-  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  id          Int       @id @default(autoincrement())
+  institution String    @db.VarChar(100)
+  title       String    @db.VarChar(250)
+  startDate   DateTime
+  endDate     DateTime?
+  candidateId Int
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
 
+/// Experiencia laboral previa del candidato.
 model WorkExperience {
   id          Int       @id @default(autoincrement())
   company     String    @db.VarChar(100)
@@ -44,14 +59,195 @@ model WorkExperience {
   startDate   DateTime
   endDate     DateTime?
   candidateId Int
-  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
 
+/// CV o archivo de currículum subido por el candidato.
 model Resume {
   id          Int       @id @default(autoincrement())
   filePath    String    @db.VarChar(500)
   fileType    String    @db.VarChar(50)
-  uploadDate  DateTime
+  uploadDate  DateTime  @default(now())
   candidateId Int
-  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------
+// NUEVOS MODELOS — ATS Completo
+// ----------------------------------------------------------
+
+/// Catálogo de tipos de empleo (full-time, part-time, freelance, etc.).
+/// NORMALIZACIÓN 3NF: evita texto libre repetido en Position.
+model EmploymentType {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique @db.VarChar(100)
+  description String?    @db.VarChar(255)
+  positions   Position[]
+}
+
+/// Empresa cliente que publica vacantes en el ATS.
+model Company {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique @db.VarChar(255)
+  description String?    @db.Text
+  location    String?    @db.VarChar(255)
+  website     String?    @db.VarChar(255)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
+  positions   Position[]
+}
+
+/// Reclutador o entrevistador que pertenece a una empresa.
+/// Entidad separada de Candidate para no mezclar roles (3NF).
+model Employee {
+  id         Int         @id @default(autoincrement())
+  companyId  Int
+  firstName  String      @db.VarChar(100)
+  lastName   String      @db.VarChar(100)
+  email      String      @unique @db.VarChar(255)
+  /// Valores sugeridos: recruiter | interviewer | manager
+  role       String      @default("recruiter") @db.VarChar(100)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  interviews Interview[]
+}
+
+/// Plantilla reutilizable que define los pasos del proceso de entrevistas.
+model InterviewFlow {
+  id          Int             @id @default(autoincrement())
+  description String?         @db.Text
+  createdAt   DateTime        @default(now())
+  steps       InterviewStep[]
+  positions   Position[]
+}
+
+/// Vacante publicada por una empresa.
+/// ÍNDICES SUGERIDOS: status, isVisible, title (GIN full-text).
+model Position {
+  id               Int               @id @default(autoincrement())
+  companyId        Int
+  employmentTypeId Int
+  interviewFlowId  Int?
+  title            String            @db.VarChar(255)
+  description      String?           @db.Text
+  /// Valores: draft | active | paused | closed
+  status           String            @default("draft") @db.VarChar(50)
+  isVisible        Boolean           @default(false)
+  location         String?           @db.VarChar(255)
+  salaryMin        Float?
+  salaryMax        Float?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employmentType   EmploymentType    @relation(fields: [employmentTypeId], references: [id])
+  interviewFlow    InterviewFlow?    @relation(fields: [interviewFlowId], references: [id])
+  benefits         PositionBenefit[]
+  requirements     Requirement[]
+  applications     Application[]
+}
+
+/// Catálogo de beneficios laborales reutilizables entre posiciones.
+/// NORMALIZACIÓN 3NF: evita listas de texto en Position.
+model Benefit {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique @db.VarChar(100)
+  description String?           @db.VarChar(255)
+  positions   PositionBenefit[]
+}
+
+/// Tabla puente N:M entre posiciones y beneficios.
+model PositionBenefit {
+  positionId Int
+  benefitId  Int
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  benefit    Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+
+  @@id([positionId, benefitId])
+}
+
+/// Requisitos específicos de una posición.
+/// Separados en tabla propia para permitir consultas estructuradas (3NF).
+model Requirement {
+  id          Int      @id @default(autoincrement())
+  positionId  Int
+  description String   @db.Text
+  position    Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+}
+
+/// Aplicación de un candidato a una posición.
+/// ÍNDICES SUGERIDOS: status, applicationDate, candidateId, positionId.
+model Application {
+  id              Int         @id @default(autoincrement())
+  candidateId     Int
+  positionId      Int
+  applicationDate DateTime    @default(now())
+  /// Valores: pending | in_review | interview | offer | rejected | accepted
+  status          String      @default("pending") @db.VarChar(50)
+  coverLetter     String?     @db.Text
+  notes           String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  candidate       Candidate   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  position        Position    @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  interviews      Interview[]
+
+  /// Un candidato no puede aplicar dos veces a la misma posición
+  @@unique([candidateId, positionId])
+}
+
+/// Catálogo de tipos de entrevista (técnica, RRHH, cultural, caso práctico, etc.).
+/// NORMALIZACIÓN 3NF: evita texto libre en InterviewStep.
+model InterviewType {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique @db.VarChar(100)
+  description String?         @db.VarChar(255)
+  steps       InterviewStep[]
+}
+
+/// Paso ordenado dentro de un flujo de entrevistas.
+model InterviewStep {
+  id              Int           @id @default(autoincrement())
+  interviewFlowId Int
+  interviewTypeId Int
+  name            String        @db.VarChar(100)
+  /// Orden de ejecución dentro del flujo (1, 2, 3...)
+  orderIndex      Int
+  interviewFlow   InterviewFlow @relation(fields: [interviewFlowId], references: [id], onDelete: Cascade)
+  interviewType   InterviewType @relation(fields: [interviewTypeId], references: [id])
+  interviews      Interview[]
+
+  /// Orden único dentro del mismo flujo
+  @@unique([interviewFlowId, orderIndex])
+}
+
+/// Catálogo de resultados posibles de una entrevista.
+/// NORMALIZACIÓN 3NF: evita strings libres en Interview.
+model InterviewResult {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique @db.VarChar(100)
+  description String?     @db.VarChar(255)
+  interviews  Interview[]
+}
+
+/// Entrevista realizada a un candidato en un paso específico del flujo.
+/// ÍNDICES SUGERIDOS: applicationId, employeeId, interviewDate.
+model Interview {
+  id              Int              @id @default(autoincrement())
+  applicationId   Int
+  interviewStepId Int
+  employeeId      Int
+  resultId        Int?
+  interviewDate   DateTime?
+  notes           String?          @db.Text
+  /// Puntuación de 0.00 a 10.00
+  score           Float?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  application     Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interviewStep   InterviewStep    @relation(fields: [interviewStepId], references: [id])
+  employee        Employee         @relation(fields: [employeeId], references: [id])
+  result          InterviewResult? @relation(fields: [resultId], references: [id])
 }

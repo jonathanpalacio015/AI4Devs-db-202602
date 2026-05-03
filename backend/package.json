@@ -10,11 +10,15 @@
         "prisma:init": "npx prisma init",
         "prisma:generate": "npx prisma generate",
         "start:prod": "npm run build && npm start",
-        "test": "jest" 
+        "test": "jest",
+        "db:seed": "npx ts-node --transpile-only prisma/seed.ts"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
+        "prisma": {
+            "seed": "ts-node --transpile-only prisma/seed.ts"
+        },
     "dependencies": {
         "@prisma/client": "^5.13.0",
         "cors": "^2.8.5",

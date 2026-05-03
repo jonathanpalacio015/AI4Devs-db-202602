@@ -1,4 +1,4 @@
-import { addCandidate, getCandidateById } from './candidateService';
+import { addCandidate, getCandidateById, getCandidates } from './candidateService';
 import { validateCandidateData } from '../validator';
 import { Candidate } from '../../domain/models/Candidate';
 import { Education } from '../../domain/models/Education';
@@ -206,6 +206,27 @@ describe('CandidateService', () => {
             MockedCandidate.findOne = jest.fn().mockRejectedValue(new Error('Database connection error'));
 
             await expect(getCandidateById(candidateId)).rejects.toThrow('Database connection error');
+        });
+    });
+
+    describe('getCandidates', () => {
+        it('should return all candidates', async () => {
+            const candidates = [
+                { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
+                { id: 2, firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com' },
+            ];
+
+            MockedCandidate.findAll = jest.fn().mockResolvedValue(candidates as any);
+
+            const result = await getCandidates();
+            expect(MockedCandidate.findAll).toHaveBeenCalled();
+            expect(result).toEqual(candidates);
+        });
+
+        it('should throw database connection error if findAll fails', async () => {
+            MockedCandidate.findAll = jest.fn().mockRejectedValue(new Error('boom'));
+
+            await expect(getCandidates()).rejects.toThrow('Database connection error');
         });
     });
 });

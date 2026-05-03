@@ -86,7 +86,7 @@ const AddCandidateForm = () => {
                 setError('');
             } else if (res.status === 400) {
                 const errorData = await res.json();
-                throw new Error('Datos inválidos: ' + errorData.message);
+                throw new Error('Datos inválidos: ' + (errorData.error || errorData.message));
             } else if (res.status === 500) {
                 throw new Error('Error interno del servidor');
             } else {

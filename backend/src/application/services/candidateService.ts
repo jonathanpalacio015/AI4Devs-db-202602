@@ -62,3 +62,12 @@ export const getCandidateById = async (id: number): Promise<Candidate | null> =>
         throw new Error('Database connection error');
     }
 };
+
+export const getCandidates = async (): Promise<Candidate[]> => {
+    try {
+        const candidates = await Candidate.findAll();
+        return candidates;
+    } catch (error: any) {
+        throw new Error('Database connection error');
+    }
+};

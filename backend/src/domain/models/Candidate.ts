@@ -117,5 +117,12 @@ export class Candidate {
         if (!data) return null;
         return new Candidate(data);
     }
+
+    static async findAll(): Promise<Candidate[]> {
+        const data = await prisma.candidate.findMany({
+            orderBy: { id: 'asc' }
+        });
+        return data.map(candidate => new Candidate(candidate));
+    }
 }
 

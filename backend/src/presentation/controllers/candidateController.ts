@@ -1,5 +1,14 @@
 import { Request, Response } from 'express';
-import { addCandidate, getCandidateById } from '../../application/services/candidateService';
+import { addCandidate, getCandidateById, getCandidates } from '../../application/services/candidateService';
+
+export const getCandidatesController = async (req: Request, res: Response) => {
+    try {
+        const candidates = await getCandidates();
+        res.status(200).json(candidates);
+    } catch (error: unknown) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
 
 export const addCandidateController = async (req: Request, res: Response) => {
     try {
@@ -32,4 +41,4 @@ export const getCandidateByIdController = async (req: Request, res: Response) =>
     }
 };
 
-export { addCandidate, getCandidateById };
+export { addCandidate, getCandidateById, getCandidates };

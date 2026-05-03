@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
-import { addCandidateController, getCandidateByIdController } from './candidateController';
+import { addCandidateController, getCandidateByIdController, getCandidatesController } from './candidateController';
 import * as candidateService from '../../application/services/candidateService';
 
 jest.mock('../../application/services/candidateService', () => ({
     addCandidate: jest.fn(),
     getCandidateById: jest.fn(),
+    getCandidates: jest.fn(),
 }));
 
 const mockRequest = (params: any, body: any = {}): Partial<Request> => ({
@@ -156,5 +157,37 @@ describe('getCandidateByIdController', () => {
         expect(res.json).toHaveBeenCalledWith({
             message: 'Internal server error',
         });
+    });
+});
+
+describe('getCandidatesController', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should return all candidates', async () => {
+        const candidates = [{ id: 1, firstName: 'John' }, { id: 2, firstName: 'Jane' }];
+        (candidateService.getCandidates as jest.Mock).mockResolvedValue(candidates);
+
+        const req = mockRequest({});
+        const res = mockResponse();
+
+        await getCandidatesController(req as Request, res as Response);
+
+        expect(candidateService.getCandidates).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(candidates);
+    });
+
+    it('should return 500 when service fails', async () => {
+        (candidateService.getCandidates as jest.Mock).mockRejectedValue(new Error('DB error'));
+
+        const req = mockRequest({});
+        const res = mockResponse();
+
+        await getCandidatesController(req as Request, res as Response);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({ message: 'Internal server error' });
     });
 });

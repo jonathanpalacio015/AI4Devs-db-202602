@@ -11,7 +11,8 @@
         "prisma:generate": "npx prisma generate",
         "start:prod": "npm run build && npm start",
         "test": "jest",
-        "db:seed": "npx ts-node --transpile-only prisma/seed.ts"
+        "db:seed": "npx ts-node --transpile-only prisma/seed.ts",
+        "db:migrate:legacy": "npx ts-node --transpile-only prisma/migrateFrom5432.ts"
     },
     "keywords": [],
     "author": "",

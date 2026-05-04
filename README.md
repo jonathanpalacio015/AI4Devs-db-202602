@@ -95,7 +95,7 @@ This will start a PostgreSQL database in a Docker container. The -d flag runs th
 To access the PostgreSQL database, you can use any PostgreSQL client with the following connection details:
 
 - Host: localhost
-- Port: 5432
+- Port: 5433
 - User: postgres
 - Password: password
 - Database: mydatabase
@@ -248,7 +248,7 @@ Esto iniciará una base de datos PostgreSQL en un contenedor Docker. La bandera 
 
 Para acceder a la base de datos PostgreSQL, puedes usar cualquier cliente PostgreSQL con los siguientes detalles de conexión:
  - Host: localhost
- - Port: 5432
+ - Port: 5433
  - User: postgres
  - Password: password
  - Database: mydatabase

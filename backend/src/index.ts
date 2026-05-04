@@ -39,6 +39,11 @@ app.use(cors({
 // Import and use candidateRoutes
 app.use('/candidates', candidateRoutes);
 
+// Ruta raíz para facilitar la visualización en navegador.
+app.get('/', (req, res) => {
+  res.redirect('/candidates');
+});
+
 // Route for file uploads
 app.post('/upload', uploadFile);
 

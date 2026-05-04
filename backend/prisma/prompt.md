@@ -54,3 +54,32 @@ Requisitos:
 2. Coloca los cambios en la carpeta backend/prisma.
 3. Crea 3 nuevos datos de prueba.
 4. Crea un nuevo archivo prompt.md donde asentaras los prompts solicitados.
+
+## Prompt 3 - Migracion de datos desde base de datos legacy
+
+Tengo dos bases de datos PostgreSQL corriendo en puertos distintos:
+- Puerto 5432: base de datos antigua del proyecto anterior (ai4devs-tdd-202602) con candidatos existentes.
+- Puerto 5433: base de datos nueva de este proyecto (AI4Devs-db-202602) recien creada y vacia.
+
+Necesito migrar todos los candidatos (con sus relaciones: Education, WorkExperience, Resume) desde la BD en puerto 5432 hacia la BD en puerto 5433, sin duplicar registros si ya existen.
+
+Crea un script TypeScript en backend/prisma/migrateFrom5432.ts que:
+1. Se conecte a ambas bases de datos usando Prisma Client (una instancia por BD).
+2. Lea todos los candidatos de la BD origen (5432) con sus relaciones (education, workExperience, resumes).
+3. Para cada candidato, verifique si ya existe en la BD destino (por email) y lo omita si ya esta.
+4. Inserte los candidatos nuevos junto con sus relaciones en la BD destino (5433).
+5. Use variables de entorno para las URLs de conexion, con valores por defecto seguros.
+6. Imprima un resumen al final: cuantos candidatos migrados, cuantos omitidos.
+
+Ademas, agrega el script al package.json del backend como:
+"db:migrate:legacy": "npx ts-node --transpile-only prisma/migrateFrom5432.ts"
+
+## Prompt 4 - Correccion del endpoint raiz del backend
+
+El endpoint GET / del backend retorna un error o el texto "Hola LTI!" en lugar de algo util.
+
+Modifica backend/src/index.ts para que:
+1. Elimine la respuesta hardcodeada "Hola LTI!" del endpoint GET /.
+2. En su lugar, agregue un redirect 302 desde GET / hacia GET /candidates.
+
+De esta forma, al acceder a la raiz del servidor se redirige automaticamente al listado de candidatos.
